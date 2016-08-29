@@ -1,0 +1,6 @@
+# coding=utf-8
+
+
+STATUS_ONLINE = 2
+STATUS_WAITING = 1
+STATUS_STOPPED = 0
