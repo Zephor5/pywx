@@ -1,1 +1,4 @@
+flask
+certifi
+twisted
 treq
