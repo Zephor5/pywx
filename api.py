@@ -18,7 +18,7 @@ def blogs(wx_id=None):
         CONN.commit()
         cur = CONN.execute('select * from blog where name=? order by save_time desc limit 20', (wx_id,))
     else:
-        cur = CONN.execute('select * from blog limit 100')
+        cur = CONN.execute('select * from blog order by save_time desc limit 100')
     for _, name, title, url, t in cur:
         if name not in res:
             res[name] = {'list': [], 'uptime': int(time.time() * 1000)}
