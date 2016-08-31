@@ -19,7 +19,7 @@ class Blog(object):
     def parse_content(alias, content):
         content = content.replace('&gt;', '>').replace('&lt;', '<')\
             .replace('&amp;', '&').replace('<br/>', '').encode('utf-8')
-        print content
+        logger.info(content)
         dom = ElementTree.fromstring(content)
         added = False
         for item in dom.iter('category/item'):
