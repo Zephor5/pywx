@@ -13,7 +13,8 @@ try:
     import xml.etree.cElementTree as ElementTree
 except ImportError:
     import xml.etree.ElementTree as ElementTree
-from requests.cookies import RequestsCookieJar, cookiejar_from_dict
+from cookielib import Cookie
+from requests.cookies import RequestsCookieJar
 from twisted.internet import reactor, defer
 
 from conf import STATUS_STOPPED, STATUS_ONLINE, STATUS_WAITING, DATA_PATH
@@ -65,7 +66,10 @@ class WxClient(object):
         dat = {}
         for k in self.RUNTIME_KEYS:
             dat[k] = getattr(self, k)
-        dat['cookies'] = self.cookies.get_dict()
+        cookies = []
+        for cookie in self.cookies:
+            cookies.append(repr(cookie))
+        dat['cookies'] = cookies
         with open(self.data_file, 'w') as f:
             f.write(json.dumps(dat))
 
@@ -97,7 +101,8 @@ class WxClient(object):
         for k, v in data.iteritems():
             if k in self.RUNTIME_KEYS:
                 setattr(self, k, v)
-        self.cookies = cookiejar_from_dict(data.get('cookies', {}))
+        for cookie_repr in data.get('cookies', []):
+            self.cookies.set_cookie(eval(cookie_repr, {'Cookie': Cookie}))
 
     def _notice_log(self, msg):
         logger.info('%s: %s' % (self.client_name, msg))

@@ -1,11 +1,6 @@
 # coding=utf-8
 import json
 import logging
-import os
-
-import certifi
-
-os.environ["SSL_CERT_FILE"] = certifi.where()
 
 from twisted.internet import reactor, task
 from twisted.web.resource import Resource
