@@ -5,7 +5,7 @@ import logging
 from twisted.internet import reactor, task
 from twisted.web.resource import Resource
 
-from conf import CONN
+from conf import INNER_IP, CONN
 from module.client import WxClient
 
 logger = logging.getLogger(__file__)
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     from twisted.web.server import Site
     from twisted.internet import endpoints
 
-    endpoints.serverFromString(reactor, "tcp:%s:interface=%s" % (8080, '127.0.0.1')).listen(Site(TaskManage()))
+    endpoints.serverFromString(reactor, "tcp:%s:interface=%s" % (8081, INNER_IP)).listen(Site(TaskManage()))
     init_clients()
     for c in CLIENTS.itervalues():
         c.run()
