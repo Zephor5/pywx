@@ -19,13 +19,11 @@ class Blog(object):
     def parse_content(alias, content):
         content = content.replace('&gt;', '>').replace('&lt;', '<')\
             .replace('&amp;', '&').replace('<br/>', '').encode('utf-8')
-        logger.info(content)
         dom = ElementTree.fromstring(content)
         added = False
-        for item in dom.iter('category/item'):
-            title = item.findtext('title')[9:-3]
+        for item in dom.iter('item'):
+            title = item.findtext('title')
             url = item.findtext('url')
-            url = url.replace('&amp;', '&')[9:-3]
             try:
                 DB.conn.execute("INSERT INTO blog (NAME,TITLE,URL) VALUES (?, ?, ?)", (alias, title, url))
             except sqlite3.IntegrityError:
