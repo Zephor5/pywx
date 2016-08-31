@@ -7,7 +7,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ElementTree
 
-from conf import CONN
+from conf import DB
 
 
 logger = logging.getLogger(__file__)
@@ -27,20 +27,20 @@ class Blog(object):
             url = item.findtext('url')
             url = url.replace('&amp;', '&')[9:-3]
             try:
-                CONN.execute("INSERT INTO blog (NAME,TITLE,URL) VALUES (?, ?, ?)", (alias, title, url))
+                DB.conn.execute("INSERT INTO blog (NAME,TITLE,URL) VALUES (?, ?, ?)", (alias, title, url))
             except sqlite3.IntegrityError:
                 logger.warn(u'%s 的 %s: %s 记录失败' % (alias, title, url))
             else:
                 added = True
         if added:
-            CONN.commit()
+            DB.conn.commit()
         return added
 
     @staticmethod
     def add_blog(alias, title, url):
         try:
-            CONN.execute("INSERT INTO blog (NAME,TITLE,URL) VALUES (?, ?, ?)", (alias, title, url))
+            DB.conn.execute("INSERT INTO blog (NAME,TITLE,URL) VALUES (?, ?, ?)", (alias, title, url))
         except sqlite3.IntegrityError:
             logger.warn(u'%s 的 %s: %s 记录失败' % (alias, title, url))
         else:
-            CONN.commit()
+            DB.conn.commit()

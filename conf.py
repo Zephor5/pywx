@@ -15,26 +15,25 @@ DATA_PATH = os.path.join(ROOT_PATH, 'data')
 INNER_IP = get_ip()
 
 
-class Connection(threading.local):
-
-    def __init__(self):
-        self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
+class Db(threading.local):
 
     @property
     def conn(self):
+        if not hasattr(self, '_conn'):
+            self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
         return self._conn
 
 
-CONN = Connection().conn
+DB = Db()
 
-CONN.execute("""CREATE TABLE IF NOT EXISTS blog
+DB.conn.execute("""CREATE TABLE IF NOT EXISTS blog
        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
        NAME CHAR(64) NOT NULL,
        TITLE TEXT NOT NULL,
        URL CHAR(256) UNIQUE NOT NULL,
        SAVE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""")
 
-CONN.execute("""CREATE TABLE IF NOT EXISTS client
+DB.conn.execute("""CREATE TABLE IF NOT EXISTS client
        (NAME CHAR(64) UNIQUE NOT NULL,
        PROXY CHAR(128),
        SAVE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""")
