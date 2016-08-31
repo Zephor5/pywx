@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 import sqlite3
+import threading
 
 from module.ip import get_ip
 
@@ -13,7 +14,18 @@ DATA_PATH = os.path.join(ROOT_PATH, 'data')
 
 INNER_IP = get_ip()
 
-CONN = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
+
+class Connection(threading.local):
+
+    def __init__(self):
+        self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
+
+    @property
+    def conn(self):
+        return self._conn
+
+
+CONN = Connection().conn
 
 CONN.execute("""CREATE TABLE IF NOT EXISTS blog
        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
