@@ -8,7 +8,6 @@ import re
 import urllib
 
 import treq
-import certifi
 
 try:
     import xml.etree.cElementTree as ElementTree
@@ -21,9 +20,7 @@ from conf import STATUS_STOPPED, STATUS_ONLINE, STATUS_WAITING, DATA_PATH
 from .blog import Blog
 
 __author__ = 'zephor'
-os.environ["SSL_CERT_FILE"] = certifi.where()
-logging.root.setLevel(logging.NOTSET)
-logging.root.addHandler(logging.StreamHandler())
+
 logger = logging.getLogger(__file__)
 
 
@@ -148,8 +145,8 @@ class WxClient(object):
         url = 'https://wx.qq.com'
         try:
             content = yield self.treq_get(url)
-        except:
-            self._error_log('main page fail')
+        except Exception as e:
+            self._error_log('main page fail: %s' % e)
             return
         r = re.search(r'window\.MMCgi\s*=\s*\{\s*isLogin\s*:\s*(!!"1")', content, re.M)
         if r and r.group(1) == '!!"1"':

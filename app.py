@@ -1,6 +1,11 @@
 # coding=utf-8
 import json
 import logging
+import os
+
+import certifi
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
 
 from twisted.internet import reactor, task
 from twisted.web.resource import Resource
@@ -8,6 +13,9 @@ from twisted.web.resource import Resource
 from conf import INNER_IP, CONN
 from module.client import WxClient
 
+
+logging.root.setLevel(logging.NOTSET)
+logging.root.addHandler(logging.StreamHandler())
 logger = logging.getLogger(__file__)
 CLIENTS = {}
 
