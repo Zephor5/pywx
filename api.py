@@ -12,13 +12,13 @@ app = flask.Flask('pywx')
 def blogs(wx_id=None):
     res = {}
     if wx_id:
-        DB.conn.execute("delete from blog where (select count(id) from blog where name=?)> 100 and id in "
+        DB.execute("delete from blog where id in "
                         "(select id from blog where name=? order by save_time desc limit "
-                        "(select count(id) from blog where name=?) offset 100)", (wx_id, wx_id, wx_id))
-        DB.conn.commit()
-        cur = DB.conn.execute('select * from blog where name=? order by save_time desc limit 20', (wx_id,))
+                        "(select count(id) from blog where name=?) offset 100)", (wx_id, wx_id))
+        DB.commit()
+        cur = DB.execute('select * from blog where name=? order by save_time desc limit 20', (wx_id,))
     else:
-        cur = DB.conn.execute('select * from blog order by save_time desc limit 100')
+        cur = DB.execute('select * from blog order by save_time desc limit 100')
     for _, name, title, url, t in cur:
         if name not in res:
             res[name] = {'list': [], 'uptime': int(time.time() * 1000)}

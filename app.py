@@ -16,7 +16,7 @@ CLIENTS = {}
 
 
 def init_clients():
-    cur = DB.conn.execute('select * from client')
+    cur = DB.execute('select * from client')
     for name, proxy, t in cur:
         CLIENTS[name] = WxClient(name)
 
@@ -81,8 +81,8 @@ class TaskManage(Resource):
             elif action == 'add':
                 if _name and _name not in CLIENTS:
                     CLIENTS[_name] = WxClient(_name)
-                    DB.conn.execute("INSERT INTO client (NAME) VALUES (?)", (_name,))
-                    DB.conn.commit()
+                    DB.execute("INSERT INTO client (NAME) VALUES (?)", (_name,))
+                    DB.commit()
                     CLIENTS[_name].run()
                     res['status'] = True
                     res['msg'] = u'添加成功，请<a href="/v1/wxspider/qrcode/%s">点击</a>扫描二维码登录' % _name

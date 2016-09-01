@@ -23,17 +23,23 @@ class Db(threading.local):
             self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
         return self._conn
 
+    def execute(self, sql, params=()):
+        self.conn.execute(sql, params)
+
+    def commit(self):
+        self.conn.commit()
+
 
 DB = Db()
 
-DB.conn.execute("""CREATE TABLE IF NOT EXISTS blog
+DB.execute("""CREATE TABLE IF NOT EXISTS blog
        (ID INTEGER PRIMARY KEY AUTOINCREMENT,
        NAME CHAR(64) NOT NULL,
        TITLE TEXT NOT NULL,
        URL CHAR(256) UNIQUE NOT NULL,
        SAVE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""")
 
-DB.conn.execute("""CREATE TABLE IF NOT EXISTS client
+DB.execute("""CREATE TABLE IF NOT EXISTS client
        (NAME CHAR(64) UNIQUE NOT NULL,
        PROXY CHAR(128),
        SAVE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP);""")
