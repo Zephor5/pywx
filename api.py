@@ -12,10 +12,6 @@ app = flask.Flask('pywx')
 def blogs(wx_id=None):
     res = {}
     if wx_id:
-        DB.execute("delete from blog where id in "
-                        "(select id from blog where name=? order by save_time desc limit "
-                        "(select count(id) from blog where name=?) offset 100)", (wx_id, wx_id))
-        DB.commit()
         cur = DB.execute('select * from blog where name=? order by save_time desc limit 20', (wx_id,))
     else:
         cur = DB.execute('select * from blog order by save_time desc limit 100')

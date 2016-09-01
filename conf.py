@@ -20,7 +20,7 @@ class Db(threading.local):
     @property
     def conn(self):
         if not hasattr(self, '_conn'):
-            self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'))
+            self._conn = sqlite3.connect(os.path.join(DATA_PATH, 'blog.db'), timeout=1)
         return self._conn
 
     def execute(self, sql, params=()):

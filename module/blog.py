@@ -33,6 +33,12 @@ class Blog(object):
             else:
                 added = True
         if added:
+            try:
+                DB.execute("delete from blog where id in "
+                           "(select id from blog where name=? order by save_time desc limit "
+                           "(select count(id) from blog where name=?) offset 100)", (alias, alias))
+            except sqlite3.OperationalError:
+                logger.warn(u'删除操作失败')
             DB.commit()
         return added
 
@@ -45,4 +51,10 @@ class Blog(object):
         except sqlite3.OperationalError:
             logger.error(u'%s 的 %s: %s 记录失败' % (alias, title, url))
         else:
+            try:
+                DB.execute("delete from blog where id in "
+                           "(select id from blog where name=? order by save_time desc limit "
+                           "(select count(id) from blog where name=?) offset 100)", (alias, alias))
+            except sqlite3.OperationalError:
+                logger.warn(u'删除操作失败')
             DB.commit()
