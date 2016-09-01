@@ -105,13 +105,13 @@ class WxClient(object):
             self.cookies.set_cookie(eval(cookie_repr, {'Cookie': Cookie}))
 
     def _notice_log(self, msg):
-        logger.info('%s: %s' % (self.client_name, msg))
+        logger.info('[%s] %s' % (self.client_name, msg))
 
     def _warn_log(self, msg):
-        logger.warn('%s: %s' % (self.client_name, msg))
+        logger.warn('[%s] %s' % (self.client_name, msg))
 
     def _error_log(self, msg):
-        logger.error('%s: %s' % (self.client_name, msg))
+        logger.error('[%s] %s' % (self.client_name, msg))
 
     @property
     def dn(self):

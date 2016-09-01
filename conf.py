@@ -14,6 +14,9 @@ DATA_PATH = os.path.join(ROOT_PATH, 'data')
 
 INNER_IP = get_ip()
 
+LOG_FORMAT = '[%(name)s:%(lineno)d] %(asctime)s %(levelname)s: %(message)s'
+LOG_DATEFORMAT = '%Y-%m-%d %H:%M:%S'
+
 
 class Db(threading.local):
 

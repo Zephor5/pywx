@@ -5,13 +5,21 @@ import logging
 from twisted.internet import reactor, task
 from twisted.web.resource import Resource
 
-from conf import INNER_IP, DB
+from conf import INNER_IP, DB, LOG_FORMAT, LOG_DATEFORMAT
 from module.client import WxClient
 
 
+formatter = logging.Formatter(
+        fmt=LOG_FORMAT,
+        datefmt=LOG_DATEFORMAT
+    )
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
 logging.root.setLevel(logging.NOTSET)
-logging.root.addHandler(logging.StreamHandler())
+logging.root.addHandler(handler)
 logger = logging.getLogger(__file__)
+
+
 CLIENTS = {}
 
 
