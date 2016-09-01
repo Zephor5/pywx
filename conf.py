@@ -24,7 +24,7 @@ class Db(threading.local):
         return self._conn
 
     def execute(self, sql, params=()):
-        self.conn.execute(sql, params)
+        return self.conn.execute(sql, params)
 
     def commit(self):
         self.conn.commit()
