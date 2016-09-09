@@ -172,7 +172,7 @@ class WxClient(object):
             return
         if content is None:
             return
-        r = re.search(r'window\.MMCgi\s*=\s*\{\s*isLogin\s*:\s*([\S+])', content, re.M)
+        r = re.search(r'window\.MMCgi\s*=\s*\{\s*isLogin\s*:\s*(\S+)', content)
         if r:
             if r.group(1) == '!!"1"':
                 self.online = STATUS_ONLINE
