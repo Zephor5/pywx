@@ -32,7 +32,7 @@ def init_clients():
 def check_clients():
     for client in CLIENTS.itervalues():
         if not client.is_running():
-            logger.warn('%s重新启动' % client.client_name)
+            logger.warn(u'%s重新启动' % client.client_name)
             client.run()
 
 
@@ -100,6 +100,8 @@ class TaskManage(Resource):
                 if _name and _name in CLIENTS:
                     CLIENTS[_name].stop()
                     CLIENTS.pop(_name)
+                    DB.execute('delete from client where name=?', (_name,))
+                    DB.commit()
                     logger.info(u'移除客户端：%s...' % _name)
                     res['status'] = True
                     res['msg'] = u'删除成功'
@@ -107,7 +109,7 @@ class TaskManage(Resource):
                     res['msg'] = u'名称不存在'
             elif action == 'reset':
                 if _name and _name in CLIENTS:
-                    CLIENTS[_name].reset()
+                    CLIENTS[_name].stop()
                     res['status'] = True
                 else:
                     res['msg'] = u'名称不存在'
