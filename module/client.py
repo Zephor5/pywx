@@ -48,8 +48,7 @@ class WxClient(object):
         self.members = {}
         self.groups = {}
         self.cookies = RequestsCookieJar()
-        self.login_check_d = None
-        self.sync_check_d = None
+        self._request_d = {}
         self._uptime = time.time()
         self._recover()
 
@@ -74,6 +73,8 @@ class WxClient(object):
             f.write(json.dumps(dat))
 
     def stop(self):
+        for _d in self._request_d.values():
+            _d.cancel()
         self.reset()
         self.online = STATUS_STOPPED
 
@@ -127,40 +128,61 @@ class WxClient(object):
         return int(time.time() * 1000)
 
     @defer.inlineCallbacks
-    def treq_get(self, url):
-        res = yield treq.get(url, cookies=self.cookies, headers={'Referer': 'https://wx.qq.com'}, timeout=35)
-        self.cookies = res.cookies()
-        content = yield res.content()
-        self._uptime = time.time()
-        defer.returnValue(content)
-
-    @defer.inlineCallbacks
-    def treq_post(self, url, data):
-        data = json.dumps(data)
-        res = yield treq.post(url, data, cookies=self.cookies,
-                              headers={'Referer': 'https://wx.qq.com',
-                                       'ContentType': 'application/json; charset=UTF-8'}, timeout=35)
-        self.cookies = res.cookies()
-        content = yield res.content()
-        self._uptime = time.time()
-        defer.returnValue(content)
+    def treq_request(self, url, data=None):
+        args = [url]
+        headers = {
+            'Referer': 'https://wx.qq.com'
+        }
+        method = 'get'
+        if data:
+            method = 'post'
+            data = json.dumps(data)
+            args.append(data)
+            headers['Content-Type'] = 'application/json; charset=UTF-8'
+        k = url.split('?')[0]
+        _d = self._request_d.get(k)
+        if isinstance(_d, defer.Deferred):
+            _d.cancel()
+        _d = self._request_d[k] = getattr(treq, method)(*args, cookies=self.cookies, headers=headers, timeout=35)
+        try:
+            res = yield _d
+        except Exception as e:
+            if isinstance(e.message, list) and getattr(e.message[0], 'type', None) is defer.CancelledError:
+                # print type(e.message[0]), e.message[0].type
+                self._warn_log('request %s cancelled' % k)
+            else:
+                import traceback
+                self._error_log(traceback.format_exc())
+                defer.returnValue('')
+        else:
+            self.cookies = res.cookies()
+            content = yield res.content()
+            defer.returnValue(content)
+        finally:
+            self._uptime = time.time()
+            self._request_d.pop(k, None)
 
     @defer.inlineCallbacks
     def run(self):
         url = 'https://wx.qq.com'
         try:
-            content = yield self.treq_get(url)
+            content = yield self.treq_request(url)
         except Exception as e:
             self._error_log('main page fail: %s' % e)
             return
-        r = re.search(r'window\.MMCgi\s*=\s*\{\s*isLogin\s*:\s*(!!"1")', content, re.M)
-        if r and r.group(1) == '!!"1"':
-            self.online = STATUS_ONLINE
-            self._notice_log(u"微信已登录")
-            d = self.sync_check_d = self._sync_check()
+        if content is None:
+            return
+        r = re.search(r'window\.MMCgi\s*=\s*\{\s*isLogin\s*:\s*([\S+])', content, re.M)
+        if r:
+            if r.group(1) == '!!"1"':
+                self.online = STATUS_ONLINE
+                self._notice_log(u"微信已登录")
+                d = self._sync_check()
+            else:
+                d = self._get_uuid()
+            yield d
         else:
-            d = self._get_uuid()
-        yield d
+            self._error_log(u'主页返回格式有误')
 
     @defer.inlineCallbacks
     def _get_uuid(self):
@@ -168,15 +190,20 @@ class WxClient(object):
         url = 'https://login.wx.qq.com/jslogin?appid=wx782c26e4c19acffb&redirect_uri=' + urllib.quote(
             "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage") + "&fun=new&lang=zh_CN&_=" + str(self.dn)
         try:
-            content = yield self.treq_get(url)
+            content = yield self.treq_request(url)
         except:
             self._error_log(u'获取uuid失败，准备重试...')
             reactor.callLater(0.5, self.run)
             return
+        if content is None:
+            return
         r = re.match(r'window\.QRLogin\.code = (\d+); window\.QRLogin\.uuid = "([^"]+)"', content)
-        self.uuid = r.group(2)
-        self._get_qrcode()
-        yield self._login_check(1)
+        if r:
+            self.uuid = r.group(2)
+            self._get_qrcode()
+            yield self._login_check(1)
+        else:
+            self._error_log(u'uuid返回内容有误，%s' % content)
 
     @defer.inlineCallbacks
     def _get_qrcode(self):
@@ -197,14 +224,18 @@ class WxClient(object):
             'r': self._r
         }
         url = 'https://login.wx.qq.com/cgi-bin/mmwebwx-bin/login?%s' % urllib.urlencode(login_check_dict)
-        content = yield self.treq_get(url)
+        content = yield self.treq_request(url)
+        if content is None:
+            return
         r = re.search(r'window\.code=(\d+)', content)
+        if not r:
+            return
         code = int(r.group(1))
         if code == 200:
             self._notice_log(u"正在登陆...")
             r = re.search(r'window\.redirect_uri="([^"]+)"', content)
             url = r.group(1) + '&fun=new&version=v2'
-            content = yield self.treq_get(url)
+            content = yield self.treq_request(url)
             dom = ElementTree.fromstring(content)
             self.sid = dom.findtext('wxsid')
             self.uin = dom.findtext('wxuin')
@@ -237,9 +268,11 @@ class WxClient(object):
                 "DeviceID": self.device_id
             }
         }
-        content = yield self.treq_post(url, data)
+        content = yield self.treq_request(url, data)
+        if content is None:
+            return
         body_dic = json.loads(content)
-        if body_dic['BaseResponse']['Ret'] == 0:
+        if body_dic and body_dic['BaseResponse']['Ret'] == 0:
             self.syncKey = body_dic['SyncKey']
             self._form_sync_str()
             self._parse_contact(body_dic['ContactList'])
@@ -248,8 +281,7 @@ class WxClient(object):
             self.online = STATUS_ONLINE
             self._status_notify()
             self._get_contact()
-            self.sync_check_d = self._sync_check()
-            yield self.sync_check_d
+            yield self._sync_check()
         else:
             self._error_log(u'初始化失败')
 
@@ -266,25 +298,24 @@ class WxClient(object):
         }
         url = 'https://webpush.wx.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(query_dict)
         try:
-            content = yield self.treq_get(url)
+            content = yield self.treq_request(url)
         except Exception as e:
             self._error_log(u'同步失败: ' + str(e))
-            self.sync_check_d = self._sync_check()
-            yield self.sync_check_d
+            yield self._sync_check()
+            return
+        if content is None:
             return
         r = re.match(r'window\.synccheck=\{retcode:"(\d+)",selector:"(\d+)"}', content)
         if not r:
-            self._error_log(u'同步失败: body格式有误,' + content)
-            self.sync_check_d = self._sync_check()
-            yield self.sync_check_d
+            self._error_log(u'同步失败: body格式有误，%s' % content)
+            yield self._sync_check()
             return
         retcode = int(r.group(1))
         selector = int(r.group(2))
         if retcode == 0:
             if selector == 0:
                 self._notice_log(u'同步检查')
-                self.sync_check_d = self._sync_check()
-                yield self.sync_check_d
+                yield self._sync_check()
             elif selector == 2:
                 self._notice_log(u'收到新消息')
             elif selector == 4:
@@ -343,12 +374,13 @@ class WxClient(object):
             "ToUserName": self.myUserName,
             "ClientMsgId": int(time.time() * 1000)
         }
-        content = yield self.treq_post(url, data)
-        body_dic = json.loads(content)
-        if body_dic['BaseResponse']['Ret'] == 0:
-            self._notice_log(u'状态同步成功')
-        else:
-            self._notice_log(u'状态同步失败: ' + body_dic['BaseResponse']['ErrMsg'])
+        content = yield self.treq_request(url, data)
+        if content:
+            body_dic = json.loads(content)
+            if body_dic['BaseResponse']['Ret'] == 0:
+                self._notice_log(u'状态同步成功')
+            else:
+                self._notice_log(u'状态同步失败: ' + body_dic['BaseResponse']['ErrMsg'])
 
     @defer.inlineCallbacks
     def _get_contact(self):
@@ -358,9 +390,10 @@ class WxClient(object):
             'r': self.r
         }
         url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetcontact?' + urllib.urlencode(query_dict)
-        content = yield self.treq_get(url)
-        body_dic = json.loads(content)
-        yield self._parse_contact(body_dic['MemberList'])
+        content = yield self.treq_request(url)
+        if content:
+            body_dic = json.loads(content)
+            yield self._parse_contact(body_dic['MemberList'])
 
     @defer.inlineCallbacks
     def _batch_get_contact(self, group_list):
@@ -386,9 +419,11 @@ class WxClient(object):
             'Count': len(_list),
             'List': _list
         }
-        content = yield self.treq_post(url, data)
+        content = yield self.treq_request(url, data)
+        if content is None:
+            return
         body_dic = json.loads(content)
-        if body_dic['BaseResponse']['Ret'] != 0:
+        if not body_dic or body_dic['BaseResponse']['Ret'] != 0:
             return
         for contact in body_dic['ContactList']:
             for member in contact['MemberList']:
@@ -412,10 +447,12 @@ class WxClient(object):
             "rr": self._r
         }
         try:
-            content = yield self.treq_post(url, data)
+            content = yield self.treq_request(url, data)
         except Exception as e:
             self._warn_log(u'获取消息失败: %s' % e)
             yield self._sync_check()
+            return
+        if content is None:
             return
         body_dic = json.loads(content)
         if body_dic['BaseResponse']['Ret'] != 0:
