@@ -515,8 +515,7 @@ class WxClient(object):
         self._notice_log(u'标题: %s' % title)
         self._notice_log(u'链接: %s' % url)
         self._notice_log(u'%s，分享了一个链接，请粘贴url到浏览器查看' % name)
-        if not Blog.parse_content(alias, msg['Content']):
-            Blog.add_blog(alias, title, url)
+        Blog.parse_content(alias, msg['Content'])
 
     def _msg_default(self, msg):
         self._notice_log(u'发现未定义的msgType: %d' % msg['MsgType'])
