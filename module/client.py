@@ -524,6 +524,8 @@ class WxClient(object):
             content = yield res.content()
             if content.find('Successful purge') > 0:
                 self._notice_log('purge cache ok')
+            elif content.find('Not Found') > 0:
+                self._notice_log('no cache there')
             else:
                 self._warn_log('purge cache failed: %s' % content)
         except Exception as e:
