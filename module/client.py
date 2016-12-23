@@ -517,6 +517,18 @@ class WxClient(object):
         self._notice_log(u'%s，分享了一个链接，请粘贴url到浏览器查看' % name)
         Blog.parse_content(alias, msg['Content'])
 
+        # purge cache for wxdata
+        # noinspection PyBroadException
+        try:
+            res = yield treq.get('http://wxspider.pub.sina.com.cn:8086/_purge/v1/wxspider/blogs/%s' % alias, timeout=3)
+            content = yield res.content()
+            if content.find('Successful purge') > 0:
+                self._notice_log('purge cache ok')
+            else:
+                self._warn_log('purge cache failed: %s' % content)
+        except Exception as e:
+            self._warn_log('purge cache failed: %s' % str(e))
+
     def _msg_default(self, msg):
         self._notice_log(u'发现未定义的msgType: %d' % msg['MsgType'])
         self._notice_log(msg['Content'])
