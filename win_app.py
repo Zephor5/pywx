@@ -115,6 +115,17 @@ class TaskManage(Resource):
                     res['status'] = True
                 else:
                     res['msg'] = u'名称不存在'
+        elif path.startswith('/v1/wxspider/members/'):
+            name = path.rsplit('members/', 1)[-1]
+            mems = []
+            for v in CLIENTS[name].members.itervalues():
+                mems.append({
+                    "Alias": v.pop("Alias", ""),
+                    "NickName": v.pop("NickName", ""),
+                    "RemarkName": v.pop("RemarkName", "")
+                })
+            res['msg'] = mems
+            res['status'] = True
 
         if isinstance(res, dict):
             request.setHeader("Content-Type", "application/json;charset=UTF-8")
