@@ -120,9 +120,9 @@ class TaskManage(Resource):
             mems = []
             for v in CLIENTS[name].members.itervalues():
                 mems.append({
-                    "Alias": v.pop("Alias", ""),
-                    "NickName": v.pop("NickName", ""),
-                    "RemarkName": v.pop("RemarkName", "")
+                    "Alias": v.get("Alias", ""),
+                    "NickName": v.get("NickName", ""),
+                    "RemarkName": v.get("RemarkName", "")
                 })
             res['msg'] = mems
             res['status'] = True
