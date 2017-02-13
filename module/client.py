@@ -179,6 +179,8 @@ class WxClient(object):
                 self._notice_log(u"微信已登录")
                 d = self._sync_check()
             else:
+                self.members = {}
+                self.groups = {}
                 d = self._get_uuid()
             yield d
         else:
