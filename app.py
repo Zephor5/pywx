@@ -116,8 +116,10 @@ class TaskManage(Resource):
         elif path.startswith('/v1/wxspider/members/'):
             name = path.rsplit('members/', 1)[-1]
             mems = []
-            for v in CLIENTS[name].members.itervalues():
+            members = CLIENTS[name].members.copy()
+            for k, v in members.iteritems():
                 mems.append({
+                    "id": k,
                     "Alias": v.get("Alias", ""),
                     "NickName": v.get("NickName", ""),
                     "RemarkName": v.get("RemarkName", "")
