@@ -28,7 +28,7 @@ logger = logging.getLogger(__file__)
 class WxClient(object):
 
     RUNTIME_KEYS = {"device_id", "uuid", "sid", "uin", "skey", "pass_ticket",
-                    "syncKey", "syncStr", "myUserName", "members", "groups", "_dn"}
+                    "syncKey", "syncStr", "myUserName", "_dn"}
 
     def __init__(self, client_name):
         self.device_id = ('e%f' % (random.random() * 1000000000000000)).split('.')[0]
