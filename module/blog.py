@@ -20,7 +20,12 @@ class Blog(object):
     def parse_content(alias, content):
         content = content.replace('&gt;', '>').replace('&lt;', '<')\
             .replace('&amp;', '&').replace('<br/>', '').encode('utf-8')
-        dom = ElementTree.fromstring(content)
+        try:
+            dom = ElementTree.fromstring(content)
+        except ElementTree.ParseError:
+            logger.error('parse error')
+            logger.error(content)
+            return
         data = []
         for item in dom.iter('item'):
             title = item.findtext('title')
