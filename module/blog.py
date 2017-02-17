@@ -2,7 +2,7 @@
 # import time
 import logging
 import sqlite3
-
+import unicodedata
 try:
     import xml.etree.cElementTree as ElementTree
 except ImportError:
@@ -14,10 +14,15 @@ from conf import DB
 logger = logging.getLogger(__file__)
 
 
+def remove_control_characters(s):
+    return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
+
+
 class Blog(object):
 
     @staticmethod
     def parse_content(alias, content):
+        content = remove_control_characters(content)
         content = content.replace('&gt;', '>').replace('&lt;', '<')\
             .replace('&amp;', '&').replace('<br/>', '').encode('utf-8')
         try:
