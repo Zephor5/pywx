@@ -522,10 +522,8 @@ class WxClient(object):
         # purge cache for wxdata
         # noinspection PyBroadException
         try:
-            logger.info(str(type(alias)))
-            logger.info(alias)
             res = yield treq.get('http://wxspider.pub.sina.com.cn:8086/_purge/v1/wxspider/blogs/%s' %
-                                 alias.encode('utf-8'), timeout=3)
+                                 urllib.quote(alias.encode('utf-8')), timeout=3)
             content = yield res.content()
             if content.find('Successful purge') > 0:
                 self._notice_log('purge cache ok')
