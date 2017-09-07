@@ -31,6 +31,12 @@ class WxClient(object):
                     "syncKey", "syncStr", "myUserName", "members", "groups", "_dn"}
 
     def __init__(self, client_name):
+        self.wx_host = 'wx.qq.com'
+        self.login_host = ''
+        self.file_host = ''
+        self.push_host = ''
+        self.conf_factory()
+
         self.device_id = ('e%f' % (random.random() * 1000000000000000)).split('.')[0]
         self.client_name = client_name if client_name else self.device_id
         self.qrcode_file = os.path.join(DATA_PATH, '%s.jpg' % self.client_name)
@@ -51,6 +57,23 @@ class WxClient(object):
         self._request_d = {}
         self._uptime = time.time()
         self._recover()
+
+    def conf_factory(self):
+        e = self.wx_host
+        t, o, n = "login.weixin.qq.com", "file.wx.qq.com", "webpush.weixin.qq.com"
+
+        if e.find("wx2.qq.com") > -1:
+            t, o, n = "login.wx2.qq.com", "file.wx2.qq.com", "webpush.wx2.qq.com"
+        elif e.find("wx8.qq.com") > -1:
+            t, o, n = "login.wx8.qq.com", "file.wx8.qq.com", "webpush.wx8.qq.com"
+        elif e.find("qq.com") > -1:
+            t, o, n = "login.wx.qq.com", "file.wx.qq.com", "webpush.wx.qq.com"
+        elif e.find("web2.wechat.com") > -1:
+            t, o, n = "login.web2.wechat.com", "file.web2.wechat.com", "webpush.web2.wechat.com"
+        elif e.find("wechat.com") > -1:
+            t, o, n = "login.web.wechat.com", "file.web.wechat.com", "webpush.web.wechat.com"
+
+        self.login_host, self.file_host, self.push_host = t, o, n
 
     def is_running(self):
         return time.time() - self._uptime < 35.5
@@ -189,8 +212,7 @@ class WxClient(object):
     @defer.inlineCallbacks
     def _get_uuid(self):
         self.online = STATUS_WAITING
-        url = 'https://login.wx.qq.com/jslogin?appid=wx782c26e4c19acffb&redirect_uri=' + urllib.quote(
-            "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage") + "&fun=new&lang=zh_CN&_=" + str(self.dn)
+        url = 'https://' + self.login_host + '/jslogin?appid=wx782c26e4c19acffb&fun=new&lang=zh_CN&_=' + str(self.dn)
         try:
             content = yield self.treq_request(url)
         except:
@@ -209,7 +231,7 @@ class WxClient(object):
 
     @defer.inlineCallbacks
     def _get_qrcode(self):
-        url = 'https://login.weixin.qq.com/qrcode/' + self.uuid
+        url = 'https://' + self.login_host + '/qrcode/' + self.uuid
         res = yield treq.get(url)
         content = yield res.content()
         with open(self.qrcode_file, 'wb') as f:
@@ -225,7 +247,7 @@ class WxClient(object):
             '_': self.dn,
             'r': self._r
         }
-        url = 'https://login.wx.qq.com/cgi-bin/mmwebwx-bin/login?%s' % urllib.urlencode(login_check_dict)
+        url = 'https://' + self.login_host + '/cgi-bin/mmwebwx-bin/login?%s' % urllib.urlencode(login_check_dict)
         content = yield self.treq_request(url)
         if content is None:
             return
@@ -237,6 +259,10 @@ class WxClient(object):
             self._notice_log(u"正在登陆...")
             r = re.search(r'window\.redirect_uri="([^"]+)"', content)
             url = r.group(1) + '&fun=new&version=v2'
+
+            self.wx_host = url.split('://')[1].split('/')[0]
+            self.conf_factory()
+
             content = yield self.treq_request(url)
             dom = ElementTree.fromstring(content)
             self.sid = dom.findtext('wxsid')
@@ -261,7 +287,7 @@ class WxClient(object):
             'pass_ticket': self.pass_ticket,
             'lang': 'zh_CN'
         }
-        url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxinit?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.wx_host + '/cgi-bin/mmwebwx-bin/webwxinit?' + urllib.urlencode(query_dict)
         data = {
             "BaseRequest": {
                 "Uin": self.uin,
@@ -298,7 +324,7 @@ class WxClient(object):
             'synckey': self.syncStr,
             '_': self.dn
         }
-        url = 'https://webpush.wx.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.push_host + '/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(query_dict)
         try:
             content = yield self.treq_request(url)
         except Exception as e:
@@ -363,7 +389,7 @@ class WxClient(object):
         query_dict = {
             'pass_ticket': self.pass_ticket
         }
-        url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxstatusnotify?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.wx_host + '/cgi-bin/mmwebwx-bin/webwxstatusnotify?' + urllib.urlencode(query_dict)
         data = {
             "BaseRequest": {
                 "Uin": self.uin,
@@ -391,7 +417,7 @@ class WxClient(object):
             'skey': self.skey,
             'r': self.r
         }
-        url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetcontact?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.wx_host + '/cgi-bin/mmwebwx-bin/webwxgetcontact?' + urllib.urlencode(query_dict)
         content = yield self.treq_request(url)
         if content:
             body_dic = json.loads(content)
@@ -404,7 +430,7 @@ class WxClient(object):
             "pass_ticket": self.pass_ticket,
             "r": self.r
         }
-        url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxbatchgetcontact?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.wx_host + '/cgi-bin/mmwebwx-bin/webwxbatchgetcontact?' + urllib.urlencode(query_dict)
         _list = []
         for un in group_list:
             _list.append({
@@ -439,7 +465,7 @@ class WxClient(object):
             'pass_ticket': self.pass_ticket,
             'lang': 'zh_CN'
         }
-        url = 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxsync?' + urllib.urlencode(query_dict)
+        url = 'https://' + self.wx_host + '/cgi-bin/mmwebwx-bin/webwxsync?' + urllib.urlencode(query_dict)
         data = {
             "BaseRequest": {
                 "Uin": self.uin,
