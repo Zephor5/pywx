@@ -126,7 +126,18 @@ class TaskManage(Resource):
                 })
             res['msg'] = mems
             res['status'] = True
-
+        elif path.startswith('/v1/wxspider/task/'):
+            task_name = path.rsplit('task/', 1)[-1]
+            client_name = []
+            for k, cl in CLIENTS.items():
+                for v in cl.members.itervalues():
+                    if v.get("NickName") == task_name:
+                        client_name.append({
+                            "clientname": k
+                        })
+                        break
+            res['msg'] = client_name
+            res['status'] = True
         if isinstance(res, dict):
             request.setHeader("Content-Type", "application/json;charset=UTF-8")
             res = json.dumps(res)
