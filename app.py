@@ -127,7 +127,7 @@ class TaskManage(Resource):
             res['msg'] = mems
             res['status'] = True
         elif path.startswith('/v1/wxspider/task/'):
-            task_name = path.rsplit('task/', 1)[-1]
+            task_name = get_arg('nickname')
             client_name = []
             for k, cl in CLIENTS.items():
                 for v in cl.members.itervalues():
