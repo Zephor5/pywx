@@ -1,6 +1,7 @@
 # coding=utf-8
 import json
 import logging
+import urllib
 
 from twisted.internet import reactor, task
 from twisted.web.resource import Resource
@@ -9,7 +10,6 @@ from conf import INNER_IP, DB, LOG_FORMAT, LOG_DATEFORMAT
 from module.client import WxClient
 import certifi
 import os
-import urllib
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
 formatter = logging.Formatter(
@@ -128,11 +128,12 @@ class TaskManage(Resource):
             res['msg'] = mems
             res['status'] = True
         elif path.startswith('/v1/wxspider/task/'):
-            task_name = get_arg('nickname')
+            task_name = path.rsplit('task/', 1)[-1]
+            t_name = urllib.unquote(task_name)
             client_name = []
             for k, cl in CLIENTS.items():
                 for v in cl.members.itervalues():
-                    if v.get("NickName") == task_name:
+                    if v.get("NickName") == t_name:
                         client_name.append({
                             "clientname": k
                         })
