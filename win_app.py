@@ -133,7 +133,8 @@ class TaskManage(Resource):
             client_name = []
             for k, cl in CLIENTS.items():
                 for v in cl.members.itervalues():
-                    if v.get("NickName") == t_name:
+                    nickname = v.get("NickName").encode("utf-8")
+                    if nickname == t_name:
                         client_name.append({
                             "clientname": k
                         })
